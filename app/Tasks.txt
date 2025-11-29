@@ -1,0 +1,34 @@
+Tasks
+
+1. Registration Endpoint
+ - POST /register
+ - Accept: identifier+password
+ - Save user in DB
+ - Return auth token in JSend format
+
+2. Login endpoint
+ - POST /login
+ - validate identifier + password
+ - Return auth token(s)
+
+3. Avatar upload
+ - POST /avatar
+ - upload file -> store -> return URL
+  
+4. User deletion
+ - DELETE /user
+ - Delete user + avatar
+ - Invalidate JWTs (stateless so: change signing secret or use token versioning)
+
+5. WebSocket endpoint
+ - /ws
+ - User connects
+ - When their avatar changes, return a message like;  "message": "avatar_changed", "avatar_url": "..." 
+
+ 6. JSend formatting + API documentation
+
+
+ Tech Stack 
+ Python + FastAPI + SQLAlchemy + SQLite/PostgreSQL
+
+
