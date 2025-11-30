@@ -206,5 +206,11 @@ marimo/_static/
 marimo/_lsp/
 __marimo__/
 
-#MacOS Specific
+# MacOS Specific
 .DS_Store
+
+# venv 
+venv/
+__pycache__/
+.env
+uploads/
