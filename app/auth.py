@@ -1,10 +1,10 @@
 # Hashing passwords
 # Creation of JWT token
-
 from passlib.context import CryptContext
 
 # using bcrypt hashing algorithm 
 # https://passlib.readthedocs.io/en/stable/lib/passlib.context.html
+
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated= "auto")
 
 # hash psswd
