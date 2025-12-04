@@ -9,11 +9,13 @@ engine = create_engine(
     DATABASE_URL,
     connect_args={"check_same_thread": False}) # Only the thread that opened the SQLite connection is allowed to use it.
 
-#Session class
+# Create a new database session factory when called
+# later when called db = SessionLocal, db becomes a new session
+# Every API request gets its own session
 SessionLocal = sessionmaker(
-    autocommit=False,
+    autocommit=False, #must explicitly call commit when making a new session 
     autoflush=False,
-    bind=engine
+    bind=engine #Session is connected to SQLite database
 )
  
 Base = declarative_base()
