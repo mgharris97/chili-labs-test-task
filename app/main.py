@@ -113,15 +113,6 @@ def login_user(data: LoginSchema, db: Session = Depends(get_db)):
 # Avatar upload
 # def "Stand in line and wait your turn"
 # async def "Take a number, do other tings, get notified when ready"
-
-#    1. Extract JWT from Authorization header
-#    2. Verify and decode JWT → get identifier (user id)
-#    3. Ensure user exists and is not deleted
-#    4. Accept uploaded image (File upload)
-#    5. Save it locally (or in-memory for now)
-#    6. Update user's avatar_url in DB
-#    7. Send a WebSocket message to connected clients
-#    8. Return JSend success with the new avatar URL
 @app.post("/avatar")
 async def upload_avatar(
     file: UploadFile = File(...),
@@ -166,11 +157,39 @@ def change_avatar():
 
 # Delete user
 @app.delete("/user")
-def delete_user():
-    pass
+def delete_user(token: str = Depends(bearer_scheme), db: Session = Depends(get_db)):
+    # handle invalid/expired token like /avatar
+    identifier = decode_token(token.credentials)
+    if not identifier:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+
+    # look up the user in db
+    user = db.query(User).filter(User.identifier == identifier).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # if the user is deleted, raise an exception 
+    if user.is_deleted:
+        raise HTTPException(status_code=400, detail="User already deleted")
+
+    # make user_deleted to true
+    user.is_deleted = True
+
+    # if the user has an avatar remove it
+    if user.avatar_url and os.path.exists(user.avatar_url):
+        os.remove(user.avatar_url)
+        user.avatar_url = None
+
+    # update the databse
+    db.commit()
+    db.refresh(user)
+
+    # jsend success message
+    return jsend_success({"message": "User deleted successfully"})
 
 
 # Health
+# Health
 @app.get("/health")
 def health():
-    pass
+    return jsend_success({"message": "API is running. 123"}) 
