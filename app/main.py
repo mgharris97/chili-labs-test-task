@@ -12,8 +12,9 @@ from fastapi import FastAPI
 from app.database import engine, Base
 from app.auth import hash_password, verify_password
 from app.schemas import LoginSchema, RegisterSchema
+import os
 
-SECRET_KEY = "SECRET CHANGE LATER AND MOVE TO ENV"
+SECRET_KEY = os.getenv('SECRET_KEY')
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
 
