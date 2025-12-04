@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, UploadFile, File, Header
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta, timezone
 from jose import jwt
@@ -24,14 +24,20 @@ def make_jwt(subject: str) -> str:
     expire = datetime.now(timezone.utc) + timedelta(
         minutes=ACCESS_TOKEN_EXPIRE_MINUTES
     )
-    
     payload = {
         "sub": subject,
         "exp": expire
     }
-    
     token = jwt.encode(payload, SECRET_KEY, algorithm="HS256")
     return token
+
+#Decode the token and get user identifier
+def decode_token(token: str):
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        return payload.get("sub")
+    except:
+        return None
 
 def get_db():
     # create a new database session (see database.py for SessionMaker)
@@ -126,8 +132,51 @@ def login_user(data: LoginSchema, db: Session = Depends(get_db)):
 
 # Avatar upload 
 @app.post('/avatar')
-def upload_avatar():
-    pass
+# def "Stand in line and wait your turn"
+# async def "Take a number, do other tings, get notified when ready"
+
+    #    1. Extract JWT from Authorization header
+    #    2. Verify and decode JWT → get identifier (user id)
+    #    3. Ensure user exists and is not deleted
+    #    4. Accept uploaded image (File upload)
+    #    5. Save it locally (or in-memory for now)
+    #    6. Update user's avatar_url in DB
+    #    7. Send a WebSocket message to connected clients
+    #    8. Return JSend success with the new avatar URL
+async def upload_avatar(file: UploadFile = File(), authorization: str = Header(None), db: Session = Depends(get_db)):
+    # Extract token from authorization header
+    if not authorization or not authorization.startswith('Bearer '):
+        raise HTTPException(status_code=401, detail='Missing or invalid token')
+    token = authorization.split(" ")[1]
+
+    # Decode token and get identifier
+    identifier = decode_token(token)
+    if not identifier:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+    
+    # Check to see if the user exist
+    user = db.query(User).filter(User.identifier == identifier).first()
+    if not user or user.is_deleted:
+        raise HTTPException[HTTPException(status_code=401, detail="User not authorized")]
+
+    #save the file locally
+    folder = 'avatars'
+    os.mkdir(folder, exist_ok=True)
+    file_path = os.path.join(folder, f"{identifier}.png")
+    with open(file_path, "wb") as f:
+        f.write(await file.read())
+
+    # update databsae with file path
+    user.avatar_url = file_path
+    db.commit()
+    db.refresh(user)
+
+    # return success
+    return jsend_success({"avatar_url": file_path})
+
+
+    
+    
 
 # Avatar change notification
 @app.websocket('/ws/avatar')
