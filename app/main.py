@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.orm import Session
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from jose import jwt
 from app.database import Base, engine, SessionLocal
 from app.models import User
@@ -10,9 +10,27 @@ from app.utils import jsend_success, jsend_fail
 from pydantic import BaseModel
 from fastapi import FastAPI
 from app.database import engine, Base
+from app.auth import hash_password, verify_password
+from app.schemas import LoginSchema, RegisterSchema
 
+SECRET_KEY = "SECRET CHANGE LATER AND MOVE TO ENV"
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 60
 
 app = FastAPI(title="Chili labs Backend Task")
+
+def make_jwt(subject: str) -> str:
+    expire = datetime.now(timezone.utc) + timedelta(
+        minutes=ACCESS_TOKEN_EXPIRE_MINUTES
+    )
+    
+    payload = {
+        "sub": subject,
+        "exp": expire
+    }
+    
+    token = jwt.encode(payload, SECRET_KEY, algorithm="HS256")
+    return token
 
 def get_db():
     # create a new database session (see database.py for SessionMaker)
@@ -60,25 +78,50 @@ def register_user(data: RegisterSchema, db: Session = Depends(get_db)):
     db.commit
     db.refresh(new_user)
 
-    # create a new JWT token
-    playload = {
-        "sub": new_user.identifier,
-        "exp": datetime.now() + timedelta(hours = 1)
-    }
-    token = jwt.encode(playload, "SECRET_KEY", algorithm="HS256")
-
+    token = make_jwt(new_user.identifier)
     # Return JSend success response (defined in utils.py)
     return jsend_success({
         "token": token,
         "identifier": new_user.identifier
     })
 
-    
+    #************************************
+    # end of /register endpoint
+    #************************************
+
 
 # create a new token
 @app.post('/login')
-def login_user():
-    pass
+def login_user(data: LoginSchema, db: Session = Depends(get_db)):
+    # user present in db
+    user_existing = db.query(User).filter(User.identifier == data.identifier).first()
+    
+    #Check if user is not inside the db
+    if not user_existing:
+        raise HTTPException(
+            status_code= 400,
+            detail='User Does not exist'
+        )
+    if user_existing.is_deleted:
+        raise HTTPException(
+            status_code=401,
+            detail='Authentication failed'
+        )
+ 
+    if not verify_password(data.password, user_existing.password_hash):
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid identifier or password"
+    )
+
+    # Assing a JWT to user_existing
+    jwt_token = make_jwt(user_existing.identifier)
+
+    return jsend_success({
+        "token": jwt_token,
+        "identifier": user_existing.identifier
+    })
+
 
 # Avatar upload 
 @app.post('/avatar')
