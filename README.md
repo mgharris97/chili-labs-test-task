@@ -34,16 +34,20 @@ Other
 
 ## Project Structure
 ```md
-app/
-│── main.py               # All endpoints register, login, avatar, WebSocket, delete
-│── auth.py               # Password hashing and verification
-│── database.py           # SQLAlchemy engine and SessionLocal
-│── models.py             # User model definition
-│── schemas.py            # Request validation
-│── utils.py              # JSend response helpers
-│── .env                  # SECRET_KEY 
-avatars/                  # Saved images
-README.md
+├── app
+│   ├── __init__.py
+│   ├── __pycache__
+│   ├── auth.py          # Password hashing and verification
+│   ├── database.py      # SQLAlchemy engine and SessionLocal
+│   ├── main.py          # All endpoints register, login, avatar, WebSocket, delete
+│   ├── models.py        # User model definition
+│   ├── schemas.py       # Request validation
+│   └── utils.py         # JSend response helpers
+├── app.db 
+├── avatars              # Saved images
+├── README.md
+├── requirements.txt
+└── .env                 # SECRET_KEY 
 ```
 
 ## Environment setup
